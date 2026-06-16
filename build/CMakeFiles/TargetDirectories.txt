@@ -1,0 +1,3 @@
+/home/lixin/eir/lixin/mini_harness/build/CMakeFiles/mini_harness.dir
+/home/lixin/eir/lixin/mini_harness/build/CMakeFiles/edit_cache.dir
+/home/lixin/eir/lixin/mini_harness/build/CMakeFiles/rebuild_cache.dir

@@ -125,7 +125,7 @@ export HARNESS_SRC_DIR=/path/to/your/c/source
 
 ### `# 实现需求`（可选）
 
-描述需要新增或修改的功能。AI 会据此修改源码，然后测试验证。
+描述需要新增或修改的功能。AI 会据此**自动修改源码**，输出 **unified diff**，然后测试验证。
 
 ```markdown
 # 实现需求
@@ -137,6 +137,8 @@ export HARNESS_SRC_DIR=/path/to/your/c/source
 ## 修改项
 - 将 StopEngine 的返回值改为 -99
 ```
+
+> AI 会在终端和报告中输出 **diff -u** 格式的差异，让你一目了然改了什么。
 
 ### `# 测试意图`（必填）
 
@@ -174,6 +176,23 @@ export HARNESS_SRC_DIR=/path/to/your/c/source
 ━━━ [1/2] remote_engine.c ━━━
   [0/4] AI 按意图实现功能...
   [0/4] AI 修改了源码
+  ── Diff ──────────────────────────────
+  --- a/remote_engine.c
+  +++ b/remote_engine.c
+  @@ -1,5 +1,12 @@
+   #include "remote_window.h"
+  
+  +static bool CheckGatewayOnline(void) {
+  +    return true;  // TODO: 替换为实际网关检查逻辑
+  +}
+  +
+   int StartEngine(int cmd) {
+  +    if (!CheckGatewayOnline()) {
+  +        printf("网关离线，拒绝执行\n");
+  +        return -3;
+  +    }
+       printf("Engine %s done\n", cmd == 1 ? "started" : "stopped");
+  ───────────────────────────────────────
   [0/4] 验证编译...通过
   [1/4] AI 生成测试代码...
   [2/4] 编译测试...通过

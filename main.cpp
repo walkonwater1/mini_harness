@@ -153,6 +153,33 @@ static std::string ExecCapture(const std::string& cmd)
     return out;
 }
 
+// ═══════════════════ Diff 生成 ═══════════════════
+static std::string GenerateDiff(const std::string& before,
+                                 const std::string& after,
+                                 const std::string& filename)
+{
+    if (before == after) return "";
+
+    std::string tmpBefore = "/tmp/_ai_diff_before_" + filename;
+    std::string tmpAfter  = "/tmp/_ai_diff_after_"  + filename;
+    WriteFile(tmpBefore, before);
+    WriteFile(tmpAfter,  after);
+
+    std::string diff = ExecCapture("diff -u " + tmpBefore + " " + tmpAfter);
+
+    // 清理 diff 头部的临时文件路径，换成好看的文件名
+    // diff -u 输出格式: --- /tmp/_ai_diff_before_xxx  →  --- a/file.c
+    //                   +++ /tmp/_ai_diff_after_xxx   →  +++ b/file.c
+    auto pos = diff.find(tmpBefore);
+    if (pos != std::string::npos)
+        diff.replace(pos, tmpBefore.size(), "a/" + filename);
+    pos = diff.find(tmpAfter);
+    if (pos != std::string::npos)
+        diff.replace(pos, tmpAfter.size(), "b/" + filename);
+
+    return diff;
+}
+
 // ═══════════════════ 收集 .c 文件 ═══════════════════
 static std::vector<fs::path> CollectCFiles(const fs::path& dir)
 {
@@ -272,6 +299,7 @@ struct Result
     // Phase 0: AI 实现新功能
     std::string srcBefore;       // 修改前的源码
     std::string srcAfter;        // 修改后的源码
+    std::string codeDiff;        // unified diff (修改前→修改后)
     bool        codeModified = false;
     bool        codeCompiled = false;
     std::string codeCompileErr;
@@ -324,9 +352,11 @@ static void WriteReportMd(const std::vector<Result>& rs, const std::string& path
 
         if (r.codeModified) {
             md << "### 📝 Phase 0: AI 修改了源码\n\n";
-            md << "**修改前:**\n\n";
+            md << "**Diff (unified):**\n\n";
+            md << "```diff\n" << r.codeDiff << "\n```\n\n";
+            md << "**修改前 (完整):**\n\n";
             md << "```c\n" << r.srcBefore << "\n```\n\n";
-            md << "**修改后:**\n\n";
+            md << "**修改后 (完整):**\n\n";
             md << "```c\n" << r.srcAfter << "\n```\n\n";
             md << "**编译:** "
                << (r.codeCompiled ? "通过" + std::string(r.codeFixRetries > 0 ? "（修复 " + std::to_string(r.codeFixRetries) + " 次）" : "") : "失败")
@@ -379,6 +409,7 @@ static void WriteReportJson(const std::vector<Result>& rs, const std::string& pa
         js << "      \"phase0_fix_retries\": " << r.codeFixRetries << ",\n";
         js << "      \"phase0_src_before\": \"" << EscapeJson(r.srcBefore) << "\",\n";
         js << "      \"phase0_src_after\": \"" << EscapeJson(r.srcAfter) << "\",\n";
+        js << "      \"phase0_diff\": \"" << EscapeJson(r.codeDiff) << "\",\n";
         js << "      \"phase0_compile_error\": \"" << EscapeJson(r.codeCompileErr) << "\",\n";
         js << "      \"phase1_test_code\": \"" << EscapeJson(r.aiTestCode) << "\",\n";
         js << "      \"phase2_compiled\": " << (r.testCompiled ? "true" : "false") << ",\n";
@@ -457,10 +488,16 @@ int main(int argc, char* argv[])
                 r.srcAfter = ExtractCodeBlock(aiImplText);
 
                 r.codeModified = (r.srcAfter != origSrc);
-                if (r.codeModified)
+                if (r.codeModified) {
                     std::cout << "  [0/4] AI 修改了源码" << std::endl;
-                else
+                    r.codeDiff = GenerateDiff(origSrc, r.srcAfter, fname);
+                    // 终端打印 diff
+                    std::cout << "  ── Diff ──────────────────────────────" << std::endl;
+                    std::cout << r.codeDiff << std::endl;
+                    std::cout << "  ───────────────────────────────────────" << std::endl;
+                } else {
                     std::cout << "  [0/4] 无需修改源码" << std::endl;
+                }
             }
 
             // 编译修改后的源码 → 失败则 AI 修复

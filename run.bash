@@ -8,3 +8,7 @@ cd build
 
 cmake ..
 make -j"$(nproc)"
+
+echo ""
+echo "=== Running harness ==="
+./mini_harness

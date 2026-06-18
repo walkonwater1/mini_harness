@@ -6,6 +6,15 @@ AI 会根据以下需求自动修改源码，然后再测试验证。
 - 网关状态检查函数名统一为 CheckGatewayOnline，返回 bool 类型
 - 网关离线时 MQTT 上报结果码 -3
 
+## 新建文件
+<!-- 在此列出需要新建的文件，格式: - 文件名: 功能描述 -->
+<!-- 例如: - remote_aircon.c: 实现远程空调控制模块 -->
+<!-- AI 将根据整体需求上下文自动生成文件内容 -->
+
+## 删除文件
+<!-- 在此列出需要删除的文件，格式: - 文件名 -->
+<!-- 例如: - deprecated_module.c -->
+
 # 测试意图
 
 ## 通用规则
@@ -15,9 +24,10 @@ AI 会根据以下需求自动修改源码，然后再测试验证。
 - 每个测试步骤用 printf 输出 [TEST] 描述 和 [PASS]/[FAIL]
 
 ## remote_engine.c 重点关注
-- StartEngine 的前置条件检查链是否完整
+- StartEngine 的前置条件检查链是否完整（含新增的 CheckGatewayOnline）
 - StopEngine 是否在任何状态下都能安全执行
 - 非法命令是否返回 -1 且不触发 CAN 指令
+- 网关离线时是否正确上报 -3 且不执行后续操作
 
 ## remote_window.c 重点关注
 - UnlockDoor 的安全检查链是否完整
